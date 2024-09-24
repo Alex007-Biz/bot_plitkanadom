@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from aiogram import Bot, Dispatcher, types, F
-from aiogram.types import InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.filters import Command
 from aiogram.types import Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
@@ -37,18 +37,6 @@ logging.basicConfig(level=logging.INFO)
 #
 # print(completion.choices[0].message)
 
-
-# button_plitka = KeyboardButton(text="Плитка")
-# button_santechnika = KeyboardButton(text="Сантехника")
-# button_floor = KeyboardButton(text="Напольные покрытия")
-#
-#
-# keyboards = ReplyKeyboardMarkup(keyboard=[
-#     [button_plitka, button_santechnika],
-#     [button_floor]
-#     ], resize_keyboard=True)
-
-
 async def on_startup():
     await create_table()
 
@@ -66,7 +54,7 @@ async def extract_user_data(message):
 async def send_start(message: Message):
     user_data = await extract_user_data(message)
 
-    # Создаем инлайн-клавиатуру с помощью InlineKeyboardBuilder (в 3.x есть улучшенная версия)
+    # Создаем инлайн-клавиатуру с основным меню
     builder = InlineKeyboardBuilder()
     builder.add(InlineKeyboardButton(text="Плитка", callback_data="plitka"))
     builder.add(InlineKeyboardButton(text="Сантехника", callback_data="santechnics"))
@@ -79,17 +67,35 @@ async def send_start(message: Message):
 
 # Обработка нажатий на инлайн-кнопки
 @router.callback_query(F.data == 'plitka')
-async def process_button1(callback: types.CallbackQuery):
-    await callback.message.answer("Плитка:")
+async def plitka(callback: types.CallbackQuery):
+    # Создаем новое меню для выбора вариантов плитки
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text="Керамическая плитка", callback_data="ceramic"))
+    builder.add(InlineKeyboardButton(text="Керамогранит", callback_data="porcelain"))
+    builder.add(InlineKeyboardButton(text="Мозаика", callback_data="mosaic"))
+
+    # Обновляем сообщение с новым меню
+    await callback.message.edit_text(
+        "Выберите тип плитки:",
+        reply_markup=builder.as_markup()
+    )
+    # Подтверждаем обработку callback
     await callback.answer()
 
+# Обработка выбора конкретного типа плитки (например, керамическая плитка)
+@router.callback_query(F.data == 'ceramic')
+async def ceramic_tile(callback: types.CallbackQuery):
+    await callback.message.answer("Вы выбрали: Керамическая плитка.")
+    await callback.answer()
+
+
 @router.callback_query(F.data == 'santechnics')
-async def process_button2(callback: types.CallbackQuery):
+async def santechnics(callback: types.CallbackQuery):
     await callback.message.answer("Сантехника:")
     await callback.answer()
 
 @router.callback_query(F.data == 'floor')
-async def process_button2(callback: types.CallbackQuery):
+async def floor(callback: types.CallbackQuery):
     await callback.message.answer("Напольные покрытия:")
     await callback.answer()
 
