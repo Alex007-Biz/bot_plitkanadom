@@ -10,7 +10,7 @@ import random
 
 
 
-bot = telebot.TeleBot("6852693433:AAE8BdxZCNfoe5PApiiTAyTr44Z7jaz02Ms")
+bot = telebot.TeleBot("API_KEY")
 
 @bot.message_handler(commands=['start'])
 def start_message(message):
