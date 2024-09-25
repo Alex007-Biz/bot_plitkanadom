@@ -27,13 +27,13 @@ logging.basicConfig(level=logging.INFO)
 
 # Словарь, соответствующий каждому типу плитки и параметрам get_param
 tile_params = {
-    'Для ванной': '&arrFilter_45_1111111111=Y',
-    'Керамогранит': '&arrFilter_45_2225864208=Y',
-    'Мозаика': '&arrFilter_45_3333333333=Y',
-    'Настенная плитка': '&arrFilter_45_4444444444=Y',
-    'Напольная плитка': '&arrFilter_45_5555555555=Y',
-    'Для кухни': '&arrFilter_45_6666666666=Y',
-    'Ступени (клинкер)': '&arrFilter_45_7777777777=Y'
+    'Для ванной': 'arrFilter_45_2367533627=Y',
+    'Керамогранит': 'arrFilter_45_2225864208=Y',
+    'Мозаика': 'arrFilter_45_336913281=Y',
+    'Настенная плитка': 'arrFilter_45_326707096=Y',
+    'Напольная плитка': 'arrFilter_45_1662243607=Y',
+    'Для кухни': 'arrFilter_45_4196041389=Y',
+    'Ступени (клинкер)': 'arrFilter_45_4088188550=Y'
 }
 
 set_filter = '&set_filter=Y'
@@ -64,8 +64,8 @@ async def extract_user_data(message):
     await add_user(user_id, username, first_name, last_name, last_access)
 
 # Определяем состояние для FSM
-class TileState(StatesGroup):
-    tile_type = State()  # Состояние для типа плитки
+# class TileState(StatesGroup):
+#     tile_type = State()  # Состояние для типа плитки
 
 @router.message(Command('start'))
 async def send_start(message: Message, state: FSMContext):
