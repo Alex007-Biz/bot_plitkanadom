@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import re
 from aiogram import Bot, Dispatcher, Router, types, F
 from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
@@ -58,13 +59,25 @@ async def process_step(callback: types.CallbackQuery, state: FSMContext, categor
     category_data = categories.get(category_key)
     options = category_data['options']
 
-    # Сохраняем текущий шаг как предыдущий
+    # Получаем данные о предыдущих шагах
     data = await state.get_data()
     previous_steps = data.get('previous_steps', [])
-    # print(f"previous_steps: {previous_steps}")
-    previous_steps.append(category_key)
-    # print(f"previous_steps.append: {previous_steps}")
+
+    # Обработка нажатия кнопки "Назад"
+    if callback.data == "back" and len(previous_steps) > 1:
+        print(f"Before popping: {previous_steps}")
+        # previous_steps.pop()  # НЕ удаляем последний шаг!!!
+        category_key = previous_steps[-1]  # Берем предыдущий шаг (последний в списке)
+        category_data = categories.get(category_key)
+        options = category_data['options']
+        print(f"After popping: {previous_steps}")
+    else:
+        if category_key not in previous_steps:
+            previous_steps.append(category_key)  # Добавляем текущий шаг, только если это не "Назад"
+
+    # Сохраняем обновленные шаги
     await state.update_data(previous_steps=previous_steps)
+    print(f"Updated previous_steps: {previous_steps}")
 
     # Создаём кнопки для каждой опции
     builder = InlineKeyboardBuilder()
@@ -74,8 +87,9 @@ async def process_step(callback: types.CallbackQuery, state: FSMContext, categor
     # Добавляем кнопку "Пропустить"
     builder.add(InlineKeyboardButton(text="Пропустить", callback_data=f"skip_{category_key}"))
 
-    # Добавляем кнопку "Назад", только если есть предыдущие шаги
-    if len(previous_steps) > 1:  # Больше 1, чтобы избежать возврата на первый шаг
+    # Добавляем кнопку "Назад", если есть предыдущие шаги
+    print(f"len(previous_steps): {len(previous_steps)}")
+    if len(previous_steps) > 1:
         builder.add(InlineKeyboardButton(text="Назад", callback_data="back"))
     builder.adjust(3)  # Расположить кнопки в 3 колонки
 
@@ -161,15 +175,37 @@ async def handle_back(callback: types.CallbackQuery, state: FSMContext):
     # Получаем данные из состояния
     data = await state.get_data()
     previous_steps = data.get('previous_steps', [])
+    url = data.get('url', '')
+    print(f"url после previous_steps: {url}")
     print(f"previous_steps: {previous_steps}")
+
     # Удаляем текущий шаг и получаем предыдущий
     if len(previous_steps) > 1:  # Если есть хотя бы два шага (чтобы можно было вернуться)
-        # Удаляем текущий шаг
-        current_step = previous_steps.pop()
-        previous_step = previous_steps[-1]
+        current_step = previous_steps.pop()  # Удаляем текущий шаг
+        print(f"Текущий шаг (current_step): {current_step}")
+        previous_step = previous_steps[-1]  # Получаем предыдущий шаг
+        print(f"Предыдущий шаг (previous_step): {previous_step}")
+
+        # Откатываем URL, удаляя параметр, соответствующий предыдущему шагу
+        category_data = categories.get(previous_step)  # Используем предыдущий шаг для параметров
+        if category_data:
+            for option, param in category_data['options'].items():
+                if param in url:
+                    # Проверяем, есть ли параметр в строке
+                    print(f"Удаляем параметр: {param}")
+                    # Явно удаляем параметр color или другие
+                    if f"&{param}" in url:
+                        url = url.replace(f"&{param}", '')  # Удаляем параметр из середины строки
+                    elif f"?{param}" in url:
+                        url = url.replace(f"?{param}", '?')  # Удаляем параметр из начала строки, оставляя ?
+
+                    # Убираем любые двойные `&&` и чистим `?&` комбинации
+                    url = url.replace('&&', '&').replace('?&', '?').strip('&').strip('?')
+                    print(f"Updated URL: {url}")
+                    break  # Удаляем только первый найденный параметр
 
         # Обновляем состояние
-        await state.update_data(previous_steps=previous_steps)
+        await state.update_data(previous_steps=previous_steps, url=url)
 
         # Переходим на предыдущий шаг
         await process_step(callback, state, previous_step)
