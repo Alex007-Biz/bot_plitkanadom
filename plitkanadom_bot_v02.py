@@ -61,7 +61,9 @@ async def process_step(callback: types.CallbackQuery, state: FSMContext, categor
     # Сохраняем текущий шаг как предыдущий
     data = await state.get_data()
     previous_steps = data.get('previous_steps', [])
+    # print(f"previous_steps: {previous_steps}")
     previous_steps.append(category_key)
+    # print(f"previous_steps.append: {previous_steps}")
     await state.update_data(previous_steps=previous_steps)
 
     # Создаём кнопки для каждой опции
@@ -73,13 +75,21 @@ async def process_step(callback: types.CallbackQuery, state: FSMContext, categor
     builder.add(InlineKeyboardButton(text="Пропустить", callback_data=f"skip_{category_key}"))
 
     # Добавляем кнопку "Назад", только если есть предыдущие шаги
-    if previous_steps:
+    if len(previous_steps) > 1:  # Больше 1, чтобы избежать возврата на первый шаг
         builder.add(InlineKeyboardButton(text="Назад", callback_data="back"))
     builder.adjust(3)  # Расположить кнопки в 3 колонки
 
-    # Обновляем сообщение с новым меню
-    await callback.message.edit_text(category_data['text'], reply_markup=builder.as_markup())
-    await callback.answer()
+    # Проверяем, изменилось ли сообщение
+    current_text = category_data['text']
+    current_reply_markup = builder.as_markup()
+
+    # Проверяем, изменились ли текст или разметка
+    if callback.message.text != current_text or callback.message.reply_markup != current_reply_markup:
+        # Обновляем сообщение с новым текстом и клавиатурой
+        await callback.message.edit_text(current_text, reply_markup=current_reply_markup)
+    else:
+        # Если текст и разметка не изменились, просто отправляем callback ответ
+        await callback.answer()
 
 
 # Шаг 1. Обработка нажатий на кнопку "Плитка"
@@ -97,22 +107,27 @@ async def plitka(callback: types.CallbackQuery, state: FSMContext):
 async def handle_selection(callback: types.CallbackQuery, state: FSMContext):
     # Получаем текущий URL из состояния
     data = await state.get_data()
+    print(f"data: {data}")
     url = data.get('url')
-
+    print(f"url: {url}")
     # Находим категорию и соответствующий параметр
     for category_key, category_data in categories.items():
         if callback.data in category_data['options']:
             param = category_data['options'][callback.data]
             new_url = url + param
+            print(f"new_url: {new_url}")
             await state.update_data(url=new_url)
 
             # Определяем следующий шаг
             next_step = category_data['next_step']
+            print(f"next_step: {next_step}")
             if next_step:
                 # Переход к следующему шагу
                 await process_step(callback, state, next_step)
             else:
                 # Это последний шаг, выводим финальную ссылку
+                new_url += set_filter
+                print(f"new_url+set_filter: {new_url}")
                 await callback.message.edit_text(f"Вы выбрали: {callback.data}.\nСсылка на коллекции: {new_url}")
 
             await callback.answer()
@@ -122,22 +137,12 @@ async def handle_selection(callback: types.CallbackQuery, state: FSMContext):
 # Обработка нажатий на "Пропустить"
 @router.callback_query(F.data.startswith('skip_'))
 async def handle_skip(callback: types.CallbackQuery, state: FSMContext):
-    # Извлекаем категорию, которую пользователь пропустил
-    category_key = callback.data.split('_')[1]
-    print(f"category_key: {category_key}")
+    category_key = callback.data[len('skip_'):]
     # Получаем следующий шаг, если он есть
     category_data = categories.get(category_key)
     print(f"category_data: {category_data}")
-
-    if category_data is None:
-        # Если категория не найдена, возвращаем ошибку
-        await callback.message.edit_text("Ошибка: категория не найдена.")
-        await callback.answer()
-        return
-
     next_step = category_data.get('next_step')
     print(next_step)
-
     if next_step:
         # Если есть следующий шаг, переходим к нему
         await process_step(callback, state, next_step)
@@ -150,11 +155,28 @@ async def handle_skip(callback: types.CallbackQuery, state: FSMContext):
     await callback.answer()
 
 
-# Обработка команды "Назад"
-@router.callback_query(F.data == 'start')
-async def back_to_start(callback: types.CallbackQuery):
-    # Возвращаемся к начальному меню
-    await send_start(callback.message, None)
+# Обработка кнопки "Назад"
+@router.callback_query(F.data == 'back')
+async def handle_back(callback: types.CallbackQuery, state: FSMContext):
+    # Получаем данные из состояния
+    data = await state.get_data()
+    previous_steps = data.get('previous_steps', [])
+    print(f"previous_steps: {previous_steps}")
+    # Удаляем текущий шаг и получаем предыдущий
+    if len(previous_steps) > 1:  # Если есть хотя бы два шага (чтобы можно было вернуться)
+        # Удаляем текущий шаг
+        current_step = previous_steps.pop()
+        previous_step = previous_steps[-1]
+
+        # Обновляем состояние
+        await state.update_data(previous_steps=previous_steps)
+
+        # Переходим на предыдущий шаг
+        await process_step(callback, state, previous_step)
+    else:
+        # Если шагов для возврата нет, отправляем сообщение о невозможности вернуться назад
+        await callback.answer("Вы не можете вернуться назад с текущего шага.", show_alert=True)
+
     await callback.answer()
 
 
