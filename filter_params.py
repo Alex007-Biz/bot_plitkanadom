@@ -25,5 +25,54 @@ tile_colors = {
     'Синий': '&arrFilter_44_2890935712=Y',
     'Фиолетовый': '&arrFilter_44_2872961465=Y',
     'Черно-белый': '&arrFilter_44_2651089905=Y',
-    'Черный': '&arrFilter_44_1273495719=Y'
+    'Черный': '&arrFilter_44_1273495719=Y',
+    'Пропустить выбор': ''
+}
+
+# Категории и их параметры
+categories = {
+    'tile_type': {
+        'options': {
+            'Для ванной': '&arrFilter_45_1111111111=Y',
+            'Керамогранит': '&arrFilter_45_2225864208=Y',
+            'Мозаика': '&arrFilter_45_3333333333=Y',
+        },
+        'text': 'Выберите назначение плитки:',
+        'next_step': 'tile_color'
+    },
+    'tile_color': {
+        'options': {
+            'Белый': '&color=white',
+            'Черный': '&color=black',
+            'Серый': '&color=gray',
+        },
+        'text': 'Выберите цвет плитки:',
+        'next_step': 'tile_surface'  # Переход к следующему шагу - выбор поверхности
+    },
+    'tile_surface': {
+        'options': {
+            'Гладкая': '&surface=smooth',
+            'Матовая': '&surface=matt',
+            'Глянцевая': '&surface=glossy',
+        },
+        'text': 'Выберите поверхность плитки:',
+        'next_step': 'tile_pattern'  # Переход к следующему шагу - выбор рисунка
+    },
+    'tile_pattern': {
+        'options': {
+            'Однотонная': '&pattern=solid',
+            'С рисунком': '&pattern=patterned',
+        },
+        'text': 'Выберите рисунок плитки:',
+        'next_step': 'tile_price'  # Переход к следующему шагу - выбор цены
+    },
+    'tile_price': {
+        'options': {
+            'До 1000 рублей': '&price=low',
+            '1000-2000 рублей': '&price=medium',
+            'Более 2000 рублей': '&price=high',
+        },
+        'text': 'Выберите диапазон цены:',
+        'next_step': None  # Это последний шаг
+    }
 }

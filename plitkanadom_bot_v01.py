@@ -26,23 +26,8 @@ router = Router()
 dp.include_router(router)
 
 logging.basicConfig(level=logging.INFO)
+set_filter = '&set_filter=Y'
 
-
-
-# set_filter = '&set_filter=Y'
-
-# completion = client.chat.completions.create(
-#     model="gpt-4o-mini",
-#     messages=[
-#         {"role": "system", "content": "You are a helpful assistant."},
-#         {
-#             "role": "user",
-#             "content": "Write a haiku about recursion in programming."
-#         }
-#     ]
-# )
-#
-# print(completion.choices[0].message)
 
 async def on_startup():
     await create_table()
@@ -56,9 +41,6 @@ async def extract_user_data(message):
     # Сохраняем данные о пользователе
     await add_user(user_id, username, first_name, last_name, last_access)
 
-# Определяем состояние для FSM
-# class TileState(StatesGroup):
-#     tile_type = State()  # Состояние для типа плитки
 
 @router.message(Command('start'))
 async def send_start(message: Message, state: FSMContext):
@@ -83,7 +65,7 @@ async def plitka(callback: types.CallbackQuery, state: FSMContext):
     for param in tile_params:
         builder.add(InlineKeyboardButton(text=param, callback_data=param))
     builder.add(InlineKeyboardButton(text="Назад", callback_data="start"))
-    builder.adjust(2)  # Каждая строка будет содержать 2 кнопки
+    builder.adjust(3)  # Каждая строка будет содержать 3 кнопки
     # Сохраняем URL в FSM-состояние
     await state.update_data(url=url)
 
@@ -103,18 +85,13 @@ async def handle_tile_selection(callback: types.CallbackQuery, state: FSMContext
     # Присваиваем переменной значение в зависимости от нажатой кнопки
     tile_type = callback.data
     print(tile_type)
-
     # Извлекаем соответствующий get_param для выбранного типа плитки
     get_param = tile_params.get(tile_type)
-
-
     # Сохраняем новый URL с параметром типа плитки
     new_url = url + get_param
     print(new_url)
     await state.update_data(url=new_url)
     print(url)
-    # Выводим подтверждение выбора
-    # await callback.message.edit_text(f"Назначение плитки: {tile_type}")
 
     # Переход к выбору цвета плитки
     builder = InlineKeyboardBuilder()
@@ -125,7 +102,7 @@ async def handle_tile_selection(callback: types.CallbackQuery, state: FSMContext
 
     # Обновляем сообщение с меню выбора цвета
     await callback.message.edit_text(
-        f"Вы выбрали тип плитки: {tile_type}.\nТеперь выберите цвет плитки:",
+        f"Вы выбрали тип плитки: {tile_type}.\nТеперь выберите цвет плитки или нажмите 'Пропустить':",
         reply_markup=builder.as_markup()
     )
     await callback.answer()
@@ -136,21 +113,22 @@ async def handle_tile_color_selection(callback: types.CallbackQuery, state: FSMC
     # Получаем данные из FSM
     data = await state.get_data()
     url = data.get('url')
-
     # Присваиваем переменной значение цвета
     tile_color = callback.data
     # Извлекаем соответствующий параметр для выбранного цвета
     color_param = tile_colors.get(tile_color)
-    # Формируем новый URL с учетом цвета и типа плитки
-    new_url = url + color_param + '&set_filter=Y'
+    new_url = url + color_param
 
     # Сохраняем выбранный цвет плитки в FSM
     await state.update_data(tile_color=tile_color)
 
     # Выводим итоговую ссылку на выбранные коллекции
-    await callback.message.edit_text(f"Вы выбрали цвет плитки: {tile_color}.\n"
-                                     f"Ссылка на коллекции: {new_url}")
+    await callback.message.edit_text(f"Вы выбрали цвет плитки: {tile_color}. \nТеперь выберите цвет плитки или нажмите 'Пропустить':")
+    await state.update_data(url=new_url)
+    print(url)
+
     await callback.answer()
+
 
 # Обработка команды "Назад"
 @router.callback_query(F.data == 'start')
@@ -158,8 +136,6 @@ async def back_to_start(callback: types.CallbackQuery):
     # Возвращаемся к начальному меню
     await send_start(callback.message, None)
     await callback.answer()
-
-
 
 
 # Сантехника:
