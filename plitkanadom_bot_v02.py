@@ -124,8 +124,10 @@ async def handle_selection(callback: types.CallbackQuery, state: FSMContext):
 async def handle_skip(callback: types.CallbackQuery, state: FSMContext):
     # Извлекаем категорию, которую пользователь пропустил
     category_key = callback.data.split('_')[1]
+    print(f"category_key: {category_key}")
     # Получаем следующий шаг, если он есть
     category_data = categories.get(category_key)
+    print(f"category_data: {category_data}")
 
     if category_data is None:
         # Если категория не найдена, возвращаем ошибку
@@ -134,6 +136,7 @@ async def handle_skip(callback: types.CallbackQuery, state: FSMContext):
         return
 
     next_step = category_data.get('next_step')
+    print(next_step)
 
     if next_step:
         # Если есть следующий шаг, переходим к нему
