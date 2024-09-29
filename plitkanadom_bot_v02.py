@@ -57,12 +57,16 @@ async def send_start(message: Message, state: FSMContext):
 async def process_step(callback: types.CallbackQuery, state: FSMContext, category_key: str):
     # Получаем данные для текущего шага
     category_data = categories.get(category_key)
+    print(f"category_data: {category_data}")
     options = category_data['options']
-    
+    print(f"options: {options}")
 
     # Получаем данные о предыдущих шагах
     data = await state.get_data()
+    print(f"data: {data}")
     previous_steps = data.get('previous_steps', [])
+    print(f"previous_steps: {previous_steps}")
+
 
     # Обработка нажатия кнопки "Назад"
     if callback.data == "back" and len(previous_steps) > 1:
