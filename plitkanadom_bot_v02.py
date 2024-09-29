@@ -58,6 +58,7 @@ async def process_step(callback: types.CallbackQuery, state: FSMContext, categor
     # Получаем данные для текущего шага
     category_data = categories.get(category_key)
     options = category_data['options']
+    
 
     # Получаем данные о предыдущих шагах
     data = await state.get_data()
@@ -68,9 +69,10 @@ async def process_step(callback: types.CallbackQuery, state: FSMContext, categor
         print(f"Before popping: {previous_steps}")
         # previous_steps.pop()  # НЕ удаляем последний шаг!!!
         category_key = previous_steps[-1]  # Берем предыдущий шаг (последний в списке)
+        print(f"category_key: {category_key}")
         category_data = categories.get(category_key)
         options = category_data['options']
-        print(f"After popping: {previous_steps}")
+        print(f"options: {options}")
     else:
         if category_key not in previous_steps:
             previous_steps.append(category_key)  # Добавляем текущий шаг, только если это не "Назад"
@@ -186,23 +188,13 @@ async def handle_back(callback: types.CallbackQuery, state: FSMContext):
         previous_step = previous_steps[-1]  # Получаем предыдущий шаг
         print(f"Предыдущий шаг (previous_step): {previous_step}")
 
-        # Откатываем URL, удаляя параметр, соответствующий предыдущему шагу
-        category_data = categories.get(previous_step)  # Используем предыдущий шаг для параметров
-        if category_data:
-            for option, param in category_data['options'].items():
-                if param in url:
-                    # Проверяем, есть ли параметр в строке
-                    print(f"Удаляем параметр: {param}")
-                    # Явно удаляем параметр color или другие
-                    if f"&{param}" in url:
-                        url = url.replace(f"&{param}", '')  # Удаляем параметр из середины строки
-                    elif f"?{param}" in url:
-                        url = url.replace(f"?{param}", '?')  # Удаляем параметр из начала строки, оставляя ?
-
-                    # Убираем любые двойные `&&` и чистим `?&` комбинации
-                    url = url.replace('&&', '&').replace('?&', '?').strip('&').strip('?')
-                    print(f"Updated URL: {url}")
-                    break  # Удаляем только первый найденный параметр
+        # Откатываем URL: Находим индекс последнего символа '&'
+        last_ampersand_index = url.rfind('&')
+        print(f"last_ampersand_index: {last_ampersand_index}")
+        # Обрезаем строку до этого индекса
+        if last_ampersand_index > 0:
+            url = url[:last_ampersand_index]
+            print(f"Updated URL: {url}")
 
         # Обновляем состояние
         await state.update_data(previous_steps=previous_steps, url=url)
