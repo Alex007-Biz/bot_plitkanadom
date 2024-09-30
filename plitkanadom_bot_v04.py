@@ -177,9 +177,22 @@ async def handle_skip(callback: types.CallbackQuery, state: FSMContext):
 
     # Получаем выбранные опции из состояния
     selected_options = data.get('selected_options', {})  # Инициализируем selected_options, если его нет
+    previous_steps = data.get('previous_steps', [])
+
+    print(f"selected_options до пропуска: {selected_options}")
 
     # Получаем следующий шаг, если он есть
     category_data = categories.get(category_key)
+
+    # Добавляем пропущенный шаг в selected_options как пустой (или с другим специальным значением)
+    selected_options[category_key] = ''  # Пропуск шага
+
+    # Обновляем состояние
+    await state.update_data(selected_options=selected_options)
+
+    # Добавляем текущий шаг в previous_steps
+    previous_steps.append(category_key)
+    await state.update_data(previous_steps=previous_steps)
 
     next_step = category_data.get('next_step')
     print(f"next_step: {next_step}")
@@ -191,7 +204,7 @@ async def handle_skip(callback: types.CallbackQuery, state: FSMContext):
         # Это последний шаг, формируем и выводим финальную ссылку на основании selected_options
         base_url = 'https://www.plitkanadom.ru/collections/?'
         # Формируем URL на основе выбранных опций
-        params = '&'.join(selected_options.values())
+        params = '&'.join(filter(None, selected_options.values()))  # Исключаем пустые значения из URL
         print(f"params: {params}")
         final_url = base_url + params + set_filter
         print(f"final_url: {final_url}")
@@ -200,7 +213,6 @@ async def handle_skip(callback: types.CallbackQuery, state: FSMContext):
         await callback.message.answer(f"Ссылка на выбранные товары: {final_url}")
 
     await callback.answer()
-
 
 # Обработка кнопки "Назад"
 @router.callback_query(F.data == 'back')
@@ -211,9 +223,9 @@ async def handle_back(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     previous_steps = data.get('previous_steps', [])
     selected_options = data.get('selected_options', {})  # Инициализируем selected_options, если его нет
-    url = data.get('url', '')
+    # url = data.get('url', '')
 
-    print(f"url после previous_steps: {url}")
+    # print(f"url после previous_steps: {url}")
     print(f"previous_steps: {previous_steps}")
     print(f"selected_options: {selected_options}")
 
@@ -228,15 +240,8 @@ async def handle_back(callback: types.CallbackQuery, state: FSMContext):
         selected_options.pop(current_step, None)
         print(f"selected_options после удаления текущего шага: {selected_options}")
 
-        # Откатываем URL: Находим индекс последнего символа '&'
-        last_ampersand_index = url.rfind('&')
-        # Обрезаем строку до этого индекса
-        if last_ampersand_index > 0:
-            url = url[:last_ampersand_index]
-            print(f"Updated URL: {url}")
-
         # Обновляем состояние с откорректированными предыдущими шагами, выбранными опциями и URL
-        await state.update_data(previous_steps=previous_steps, selected_options=selected_options, url=url)
+        await state.update_data(previous_steps=previous_steps, selected_options=selected_options)
 
         # Переходим на предыдущий шаг
         await process_step(callback, state, previous_step)
