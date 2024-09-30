@@ -121,7 +121,7 @@ async def plitka(callback: types.CallbackQuery, state: FSMContext):
     await state.update_data(url=url)
 
     # Переходим к первому шагу - выбор назначения плитки
-    await process_step(callback, state, 'tile_type')
+    await process_step(callback, state, 'Назначение')
 
 
 # Обработка нажатий на конкретные опции для каждой категории
@@ -142,11 +142,19 @@ async def handle_selection(callback: types.CallbackQuery, state: FSMContext):
             param = category_data['options'][callback.data]
             new_url = url + param
             print(f"new_url: {new_url}")
-            # Обновляем URL и сохраняем выбранную опцию
+
+            # Сохраняем выбранную опцию в состояние
             selected_options[category_key] = callback.data
             await state.update_data(url=new_url, selected_options=selected_options)
             print(f"previous_steps: {previous_steps}")
             print(f"selected_options: {selected_options}")
+
+            # Получаем название категории и выбранной опции
+            category_name = category_data.get('name', category_key)  # Имя категории
+            option_name = callback.data
+
+            # Сообщение пользователю с выбранной опцией
+            await callback.message.answer(f"{category_name}: {option_name}")
 
             # Определяем следующий шаг
             next_step = category_data['next_step']
@@ -154,12 +162,11 @@ async def handle_selection(callback: types.CallbackQuery, state: FSMContext):
             if next_step:
                 # Переход к следующему шагу
                 await process_step(callback, state, next_step)
-                await callback.message.edit_text(f"Вы выбрали: {callback.data}.\nСсылка на коллекции: {new_url}")
             else:
                 # Это последний шаг, выводим финальную ссылку
                 new_url += set_filter
                 print(f"new_url+set_filter: {new_url}")
-                await callback.message.edit_text(f"Вы выбрали: {callback.data}.\nСсылка на коллекции: {new_url}")
+                await callback.message.answer(f"Ссылка на выбранные товары: {new_url}")
 
             await callback.answer()
             return
@@ -170,18 +177,22 @@ async def handle_selection(callback: types.CallbackQuery, state: FSMContext):
 async def handle_skip(callback: types.CallbackQuery, state: FSMContext):
     category_key = callback.data[len('skip_'):]
     data = await state.get_data()
+
     # Получаем следующий шаг, если он есть
     category_data = categories.get(category_key)
     print(f"category_data: {category_data}")
+
     next_step = category_data.get('next_step')
-    print(next_step)
+    print(f"next_step: {next_step}")
     if next_step:
         # Если есть следующий шаг, переходим к нему
         await process_step(callback, state, next_step)
     else:
         # Если это последний шаг, выводим итог
         url = data.get('url')
-        await callback.message.edit_text(f"Вы пропустили выбор.\nСсылка на коллекции: {url}")
+        new_url = url + set_filter
+        print(f"new_url+set_filter: {new_url}")
+        await callback.message.answer(f"Ссылка на выбранные товары: {new_url}")
 
     await callback.answer()
 
@@ -189,6 +200,7 @@ async def handle_skip(callback: types.CallbackQuery, state: FSMContext):
 # Обработка кнопки "Назад"
 @router.callback_query(F.data == 'back')
 async def handle_back(callback: types.CallbackQuery, state: FSMContext):
+    print(f"Нажатие Назад")
     # Получаем данные из состояния
     data = await state.get_data()
     previous_steps = data.get('previous_steps', [])
@@ -211,7 +223,6 @@ async def handle_back(callback: types.CallbackQuery, state: FSMContext):
 
         # Откатываем URL: Находим индекс последнего символа '&'
         last_ampersand_index = url.rfind('&')
-        print(f"last_ampersand_index: {last_ampersand_index}")
         # Обрезаем строку до этого индекса
         if last_ampersand_index > 0:
             url = url[:last_ampersand_index]
@@ -219,7 +230,7 @@ async def handle_back(callback: types.CallbackQuery, state: FSMContext):
 
         # Обновляем состояние
         await state.update_data(previous_steps=previous_steps, selected_options=selected_options, url=url)
-        await callback.message.edit_text(f"Вы выбрали: {callback.data}}")
+        await callback.message.edit_text(f"Вы выбрали: {callback.data}")
         # Переходим на предыдущий шаг
         await process_step(callback, state, previous_step)
     else:
