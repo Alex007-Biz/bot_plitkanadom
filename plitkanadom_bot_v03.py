@@ -57,15 +57,15 @@ async def send_start(message: Message, state: FSMContext):
 async def process_step(callback: types.CallbackQuery, state: FSMContext, category_key: str):
     # Получаем данные для текущего шага
     category_data = categories.get(category_key)
-    print(f"category_data: {category_data}")
+    # print(f"category_data: {category_data}")
     options = category_data['options']
-    print(f"options: {options}")
+    # print(f"options: {options}")
 
     # Получаем данные о предыдущих шагах
     data = await state.get_data()
-    print(f"data: {data}")
+    # print(f"data: {data}")
     previous_steps = data.get('previous_steps', [])
-    print(f"previous_steps: {previous_steps}")
+    # print(f"previous_steps: {previous_steps}")
 
     # Если selected_options еще не существует, инициализируем его как пустой словарь
     selected_options = data.get('selected_options', {})
@@ -78,7 +78,7 @@ async def process_step(callback: types.CallbackQuery, state: FSMContext, categor
         print(f"category_key: {category_key}")
         category_data = categories.get(category_key)
         options = category_data['options']
-        print(f"options: {options}")
+        # print(f"options: {options}")
     else:
         if category_key not in previous_steps:
             previous_steps.append(category_key)  # Добавляем текущий шаг, только если это не "Назад"
@@ -180,7 +180,6 @@ async def handle_skip(callback: types.CallbackQuery, state: FSMContext):
 
     # Получаем следующий шаг, если он есть
     category_data = categories.get(category_key)
-    print(f"category_data: {category_data}")
 
     next_step = category_data.get('next_step')
     print(f"next_step: {next_step}")
