@@ -41,6 +41,9 @@ async def extract_user_data(message):
 @router.message(Command('start'))
 async def send_start(message: Message, state: FSMContext):
     user_data = await extract_user_data(message)
+    # Инициализируем предыдущие шаги и выбранные опции при старте
+    await state.update_data(previous_steps=[], selected_options={})
+
     # Меню для основного выбора
     builder = InlineKeyboardBuilder()
     builder.add(InlineKeyboardButton(text="Плитка", callback_data="plitka"))
@@ -157,7 +160,7 @@ async def handle_selection(callback: types.CallbackQuery, state: FSMContext):
                 # Это последний шаг, формируем и выводим финальную ссылку на основании selected_options
                 base_url = 'https://www.plitkanadom.ru/collections/?'
                 # Формируем URL на основе выбранных опций
-                params = '&'.join(selected_options.values())
+                params = ''.join(selected_options.values())
                 print(f"params: {params}")
                 final_url = base_url + params + set_filter
                 print(f"final_url: {final_url}")
@@ -204,7 +207,7 @@ async def handle_skip(callback: types.CallbackQuery, state: FSMContext):
         # Это последний шаг, формируем и выводим финальную ссылку на основании selected_options
         base_url = 'https://www.plitkanadom.ru/collections/?'
         # Формируем URL на основе выбранных опций
-        params = '&'.join(filter(None, selected_options.values()))  # Исключаем пустые значения из URL
+        params = ''.join(filter(None, selected_options.values()))  # Исключаем пустые значения из URL
         print(f"params: {params}")
         final_url = base_url + params + set_filter
         print(f"final_url: {final_url}")
