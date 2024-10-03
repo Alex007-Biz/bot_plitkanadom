@@ -121,7 +121,7 @@ async def plitka(callback: types.CallbackQuery, state: FSMContext):
     await state.update_data(url=url)
 
     # Переходим к первому шагу - выбор назначения плитки
-    await process_step(callback, state, 'Назначение')
+    await process_step(callback, state, 'Назначение плитки')
 
 
 # Обработка выбора категории "Сантехника"
