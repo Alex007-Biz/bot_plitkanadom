@@ -11,7 +11,7 @@ from datetime import datetime
 #####
 from config_plitkanadom import PLITKANADOM_BOT
 from database_plitkanadom import create_table, add_user
-from filter_params import categories
+from filter_params import tile_categories, santechnika_categories, floor_categories
 
 bot = Bot(token=PLITKANADOM_BOT)
 dp = Dispatcher()
@@ -57,11 +57,26 @@ async def send_start(message: Message, state: FSMContext):
 
 # Функция для генерации кнопок на основе текущего шага
 async def process_step(callback: types.CallbackQuery, state: FSMContext, category_key: str):
-    # Получаем данные для текущего шага
+    data = await state.get_data()
+    current_category = data.get('current_category')
+    print(f"current_category: {current_category}")
+    # Выбираем правильный словарь категорий
+    if current_category == 'tiles':
+        categories = tile_categories
+    elif current_category == 'santechnika':
+        categories = santechnika_categories
+    elif current_category == 'floor':
+        categories = floor_categories
+    else:
+        await callback.message.answer("Ошибка: текущая категория не определена.")
+        return
+
     category_data = categories.get(category_key)
-    # print(f"category_data: {category_data}")
+    if not category_data:
+        await callback.message.answer("Ошибка: категория не найдена.")
+        return
+
     options = category_data['options']
-    # print(f"options: {options}")
 
     # Получаем данные о предыдущих шагах
     data = await state.get_data()
@@ -114,81 +129,94 @@ async def process_step(callback: types.CallbackQuery, state: FSMContext, categor
         await callback.answer()
 
 
-# Шаг 1. Обработка нажатий на кнопку "Плитка"
+# Обработка выбора "Плитка"
 @router.callback_query(F.data == 'plitka')
 async def plitka(callback: types.CallbackQuery, state: FSMContext):
     url = 'https://www.plitkanadom.ru/collections/?'
-    await state.update_data(url=url)
-
-    # Переходим к первому шагу - выбор назначения плитки
+    await state.update_data(url=url, current_category='tiles')
     await process_step(callback, state, 'Назначение плитки')
 
-
-# Обработка выбора категории "Сантехника"
+# Обработка выбора "Сантехника"
 @router.callback_query(F.data == 'santechnics')
 async def santechnics(callback: types.CallbackQuery, state: FSMContext):
-    url = 'https://www.plitkanadom.ru/santekhnika'
-    await state.update_data(url=url)
-
-    # Переходим к первому шагу - выбор типа сантехники
+    url = 'https://www.plitkanadom.ru/santekhnika?'
+    await state.update_data(url=url, current_category='santechnika')
     await process_step(callback, state, 'Тип сантехники')
-
 
 # Обработка выбора категории "Напольные покрытия"
 @router.callback_query(F.data == 'floor')
 async def floor(callback: types.CallbackQuery, state: FSMContext):
     url = 'https://www.plitkanadom.ru/napolnye-pokrytiya/?'
-    await state.update_data(url=url)
+    await state.update_data(url=url, current_category='floor')
 
     # Переходим к первому шагу - выбор типа покрытия
     await process_step(callback, state, 'Тип покрытия')
 
 
+# Собираем все опции из обоих словарей
+tile_options = set(opt for cat in tile_categories.values() for opt in cat['options'])
+santechnika_options = set(opt for cat in santechnika_categories.values() for opt in cat['options'])
+all_options = tile_options.union(santechnika_options)
+
+
 # Обработка нажатий на конкретные опции для каждой категории
-@router.callback_query(F.data.in_(set([opt for category in categories.values() for opt in category['options'].keys()])))
+@router.callback_query(F.data)
 async def handle_selection(callback: types.CallbackQuery, state: FSMContext):
     # Получаем текущий URL из состояния
     data = await state.get_data()
-    # print(f"data: {data}")
+    current_category = data.get('current_category')
     previous_steps = data.get('previous_steps', [])
+    print(f"previous_steps: {previous_steps}")
     selected_options = data.get('selected_options', {})
+    print(f"selected_options: {selected_options}")
 
-    # Находим категорию и соответствующий параметр
+    # Выбираем правильный словарь категорий
+    if current_category == 'tiles':
+        categories = tile_categories
+    elif current_category == 'santechnika':
+        categories = santechnika_categories
+    elif current_category == 'floor':
+        categories = floor_categories
+    else:
+        await callback.message.answer("Ошибка: текущая категория не определена.")
+        return
+
+    # Проверяем, существует ли выбранная опция в текущей категории
     for category_key, category_data in categories.items():
         if callback.data in category_data['options']:
-            # Сохраняем выбранную опцию в состоянии
             selected_options[category_key] = category_data['options'][callback.data]
-            print(f"selected_options: {selected_options}")
             await state.update_data(selected_options=selected_options)
-
             # Сообщение пользователю с выбранной опцией
             category_name = category_data.get('name', category_key)
             option_name = callback.data
             await callback.message.answer(f"{category_name}: {option_name}")
 
+
             # Определяем следующий шаг
-            next_step = category_data['next_step']
+            next_step = category_data.get('next_step')
+            print(f"next_step: {next_step}")
+
             if next_step:
                 # Переход к следующему шагу
                 await process_step(callback, state, next_step)
             else:
                 # Это последний шаг, формируем и выводим финальную ссылку на основании selected_options
-                data = await state.get_data()  # Получаем все данные состояния
+                # data = await state.get_data()  # Получаем все данные состояния
                 url = data.get('url')  # Извлекаем значение 'url' из данных
-                base_url = url
-                print(f"base_url: {base_url}")
+                # base_url = url
+                # print(f"base_url: {base_url}")
                 # Формируем URL на основе выбранных опций
                 params = ''.join(selected_options.values())
                 print(f"params: {params}")
-                final_url = base_url + params + set_filter
+                final_url = url + params + set_filter
                 print(f"final_url: {final_url}")
-
                 # Вывод финальной ссылки
                 await callback.message.answer(f"Ссылка на выбранные товары: {final_url}")
 
             await callback.answer()
             return
-
+        # Если опция не найдена, отправляем сообщение об ошибке
+        await callback.message.answer("Ошибка: опция не найдена в текущей категории.")
 
 # Обработка нажатий на "Пропустить"
 @router.callback_query(F.data.startswith('skip_'))
