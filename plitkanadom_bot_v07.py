@@ -167,6 +167,11 @@ async def handle_selection(callback: types.CallbackQuery, state: FSMContext):
         await handle_skip(callback, state)
         return
 
+    # Проверяем, если нажата кнопка "Назад"
+    if callback.data == 'back':
+        await handle_back(callback, state)  # Перенаправляем в обработчик кнопки "Назад"
+        return
+
     # Получаем текущий URL из состояния
     data = await state.get_data()
     print(f"data: {data}")
@@ -230,6 +235,7 @@ async def handle_selection(callback: types.CallbackQuery, state: FSMContext):
 
     # Если опция не найдена
     await callback.message.answer("Ошибка: выбранная опция не найдена.")
+    
 
 
 # Обработка нажатий на "Пропустить"
@@ -322,8 +328,13 @@ async def handle_back(callback: types.CallbackQuery, state: FSMContext):
             await callback.message.answer("Ошибка: текущая категория не определена.")
             return
 
-        # Переходим на предыдущий шаг
-        await process_step(callback, state, previous_step)
+        # Проверяем, существует ли предыдущий шаг в текущей категории
+        category_data = categories.get(previous_step)
+        if category_data:
+            # Переходим на предыдущий шаг
+            await process_step(callback, state, previous_step)
+        else:
+            await callback.message.answer("Ошибка: предыдущий шаг не найден.")
     else:
         # Если шагов для возврата нет
         await callback.answer("Вы не можете вернуться назад с текущего шага.", show_alert=True)
