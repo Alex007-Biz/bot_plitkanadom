@@ -235,7 +235,7 @@ async def handle_selection(callback: types.CallbackQuery, state: FSMContext):
 
     # Если опция не найдена
     await callback.message.answer("Ошибка: выбранная опция не найдена.")
-    
+
 
 
 # Обработка нажатий на "Пропустить"
