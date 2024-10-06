@@ -109,12 +109,12 @@ async def process_step(callback: types.CallbackQuery, state: FSMContext, categor
         builder.add(InlineKeyboardButton(text=option, callback_data=option))
 
     # Добавляем кнопку "Пропустить"
-    builder.add(InlineKeyboardButton(text="Пропустить", callback_data=f"skip_{category_key}"))
+    builder.row(InlineKeyboardButton(text="⏭️ Пропустить", callback_data=f"skip_{category_key}"))
 
     # Добавляем кнопку "Назад", если есть предыдущие шаги
     print(f"len(previous_steps): {len(previous_steps)}")
     if len(previous_steps) > 1:
-        builder.add(InlineKeyboardButton(text="Назад", callback_data="back"))
+        builder.row(InlineKeyboardButton(text="🔙 Назад", callback_data="back"))
     builder.adjust(3)  # Расположить кнопки в 3 колонки
 
     # Обновляем сообщение с новым текстом и клавиатурой
