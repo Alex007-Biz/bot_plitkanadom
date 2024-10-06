@@ -228,7 +228,14 @@ async def handle_selection(callback: types.CallbackQuery, state: FSMContext):
                 # Удаляем все лишние символы "?", оставляя только один
                 final_url = final_url.replace('?', '', final_url.count('?') - 1)
                 print(f"final_url: {final_url}")
-                await callback.message.answer(f"Ссылка на выбранные товары: {final_url}")
+
+                # Создаем инлайн-кнопку с ссылкой
+                builder = InlineKeyboardBuilder()
+                builder.add(InlineKeyboardButton(text="Посмотреть выбранное", url=final_url))
+
+                # Отправляем сообщение с кнопкой
+                await callback.message.answer("Нажмите кнопку, чтобы посмотреть выбранные товары:",
+                                              reply_markup=builder.as_markup())
 
             await callback.answer()
             return
@@ -290,7 +297,14 @@ async def handle_skip(callback: types.CallbackQuery, state: FSMContext):
         final_url = url + params + set_filter
         # Удаляем все лишние символы "?", оставляя только один
         final_url = final_url.replace('?', '', final_url.count('?') - 1)
-        await callback.message.answer(f"Ссылка на выбранные товары: {final_url}")
+
+        # Создаем инлайн-кнопку с ссылкой
+        builder = InlineKeyboardBuilder()
+        builder.add(InlineKeyboardButton(text="Посмотреть выбранное", url=final_url))
+
+        # Отправляем сообщение с кнопкой
+        await callback.message.answer("Нажмите кнопку, чтобы посмотреть выбранные товары:",
+                                      reply_markup=builder.as_markup())
 
     await callback.answer()
 
